@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamentos Salão Beleza SP</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        h1 { color: #333; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .confirmado { color: green; font-weight: bold; }
+        .nao-confirmado { color: orange; }
+        .delete-button, .confirm-button, .unconfirm-button {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-right: 5px;
+        }
+        .delete-button { background-color: #dc3545; color: white; }
+        .confirm-button { background-color: #28a745; color: white; }
+        .unconfirm-button { background-color: #ffc107; color: #333; }
+        .delete-button:hover { background-color: #c82333; }
+        .confirm-button:hover { background-color: #218838; }
+        .unconfirm-button:hover { background-color: #e0a800; }
+    </style>
+</head>
+<body>
+    <h1>Agendamentos Salão Beleza SP</h1>
+
+    <div id="agendamentos-list">
+        <p>Carregando agendamentos...</p>
+    </div>
+
+    <script>
+      
+        const firebaseConfig = {
+            apiKey: "AIzaSyCW1Fr0bZEa3dYWzENfNwgzUsTPYwxZ0Zg",
+            authDomain: "chatbotagendamento-cd0ac.firebaseapp.com",
+            projectId: "chatbotagendamento-cd0ac",
+            storageBucket: "chatbotagendamento-cd0ac.firebasestorage.app",
+            messagingSenderId: "421640398629",
+            appId: "1:421640398629:web:6615b2076bd0ea04d3dccc",
+            measurementId: "G-WLTHR5CP65"
+        };
+
+       
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(); 
+        const agendamentosListDiv = document.getElementById('agendamentos-list');
+
+      
+        db.collection('agendamentos').orderBy('dataHora', 'asc')
+            .onSnapshot((snapshot) => { 
+                let htmlContent = '<table><thead><tr><th>Nome</th><th>Telefone</th><th>Serviço</th><th>Data e Hora</th><th>Status</th><th>Ações</th></tr></thead><tbody>';
+
+                if (snapshot.empty) {
+                    htmlContent = '<p>Nenhum agendamento encontrado.</p>';
+                } else {
+                    snapshot.forEach(doc => {
+                        const agendamento = doc.data();
+                        const id = doc.id; // O ID do documento no Firestore
+                        const dataHoraFormatada = agendamento.dataHora.toDate().toLocaleString('pt-BR'); 
+
+                        htmlContent += `
+                            <tr>
+                                <td>${agendamento.nome}</td>
+                                <td>${agendamento.telefone}</td>
+                                <td>${agendamento.servico}</td>
+                                <td>${dataHoraFormatada}</td>
+                                <td class="${agendamento.confirmado ? 'confirmado' : 'nao-confirmado'}">
+                                    ${agendamento.confirmado ? 'Confirmado' : 'Não Confirmado'}
+                                </td>
+                                <td>
+                                    <button onclick="deletarAgendamento('${id}')" class="delete-button">Excluir</button>
+                                    <button onclick="toggleConfirmacao('${id}', ${agendamento.confirmado})" class="${agendamento.confirmado ? 'unconfirm-button' : 'confirm-button'}">
+                                        ${agendamento.confirmado ? 'Desconfirmar' : 'Confirmar'}
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    htmlContent += '</tbody></table>';
+                }
+                agendamentosListDiv.innerHTML = htmlContent; 
+            }, (error) => {
+                console.error('Erro ao carregar agendamentos:', error);
+                agendamentosListDiv.innerHTML = '<p>Erro ao carregar agendamentos.</p>';
+            });
+
+       
+        async function deletarAgendamento(id) {
+            if (confirm('Tem certeza que deseja excluir este agendamento?')) {
+                try {
+                    await db.collection('agendamentos').doc(id).delete();
+                    console.log('Agendamento excluído com sucesso!');
+                } catch (error) {
+                    console.error('Erro ao excluir agendamento:', error);
+                    alert('Erro ao excluir agendamento.');
+                }
+            }
+        }
+
+        async function toggleConfirmacao(id, isConfirmed) {
+            try {
+                await db.collection('agendamentos').doc(id).update({
+                    confirmado: !isConfirmed // Inverte o status atual
+                });
+                console.log('Status de confirmação atualizado!');
+            } catch (error) {
+                console.error('Erro ao atualizar confirmação:', error);
+                alert('Erro ao atualizar confirmação.');
+            }
+        }
+    </script>
+</body>
+</html>
